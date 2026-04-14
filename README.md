@@ -53,6 +53,12 @@ cd BluetoothSelector
 npm run dev
 ```
 
+`npm run dev` will:
+
+- start the Vite dev server on `127.0.0.1:5173`
+- watch `public/preload/native/` and auto-rebuild native helpers when they change
+- keep the workflow aligned with `public/plugin.json` in uTools
+
 Build the plugin frontend:
 
 ```bash
@@ -71,6 +77,7 @@ Use hot reload during development:
 1. Run `npm run dev` in `BluetoothSelector/`.
 2. In the uTools developer tool choose `BluetoothSelector/public/plugin.json`.
 3. Keep the dev server running while testing the plugin.
+4. If you change preload files or `plugin.json`, close and reopen the plugin in uTools once.
 
 ## Repository Structure
 
