@@ -1,24 +1,20 @@
-const fs = require('node:fs')
-const path = require('node:path')
+const bluetooth = require('./bluetooth-helper')
 
-// 通过 window 对象向渲染进程注入 nodejs 能力
-window.services = {
-  // 读文件
-  readFile (file) {
-    return fs.readFileSync(file, { encoding: 'utf-8' })
+const hostWindow = globalThis.window ?? globalThis
+
+hostWindow.services = {
+  getBluetoothSnapshot () {
+    return bluetooth.getBluetoothSnapshot()
   },
-  // 文本写入到下载目录
-  writeTextFile (text) {
-    const filePath = path.join(window.utools.getPath('downloads'), Date.now().toString() + '.txt')
-    fs.writeFileSync(filePath, text, { encoding: 'utf-8' })
-    return filePath
+  setBluetoothPower (power) {
+    return bluetooth.setBluetoothPower(power)
   },
-  // 图片写入到下载目录
-  writeImageFile (base64Url) {
-    const matchs = /^data:image\/([a-z]{1,20});base64,/i.exec(base64Url)
-    if (!matchs) return
-    const filePath = path.join(window.utools.getPath('downloads'), Date.now().toString() + '.' + matchs[1])
-    fs.writeFileSync(filePath, base64Url.substring(matchs[0].length), { encoding: 'base64' })
-    return filePath
+  connectDevice (address) {
+    return bluetooth.connectDevice(address)
+  },
+  disconnectDevice (address) {
+    return bluetooth.disconnectDevice(address)
   }
 }
+
+module.exports = hostWindow.services

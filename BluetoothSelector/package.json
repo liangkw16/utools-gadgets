@@ -1,8 +1,10 @@
 {
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build"
+    "dev": "npm run build:helper && vite",
+    "build:helper": "node scripts/build-helper.cjs",
+    "build": "npm run build:helper && vite build",
+    "test": "node --test public/preload/*.test.js src/lib/*.test.js"
   },
   "dependencies": {
     "react": "^19.0.0",

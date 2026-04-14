@@ -11,25 +11,23 @@
 
 ## Current Status
 
-The repository is currently in an early prototype stage.
+`BluetoothSelector/` is now an MVP plugin shell for macOS Bluetooth management inside uTools. The current implementation supports:
 
-The existing `BluetoothSelector/` codebase is still a Vite + React scaffold used to validate the uTools runtime and preload bridge. The current sample entries are:
+- reading the current Bluetooth controller state
+- listing paired devices with connected and disconnected grouping
+- turning Bluetooth on and off from the plugin UI
+- connecting and disconnecting paired devices
 
-- `hello`: shows the plugin enter payload
-- `read`: reads a selected file through preload services
-- `write`: writes text or image data into the downloads directory
-
-These sample pages help verify the plugin shell, but they are not yet the final Bluetooth management experience.
+The preload layer uses `system_profiler` text output as the snapshot source, a bundled Swift helper for device connect and disconnect, and an embedded Objective-C power helper that follows the same low-level approach used by `blueutil` for reliable Bluetooth power toggling on macOS.
 
 ## Planned Direction
 
-The next iterations of `BluetoothSelector` will focus on turning the current scaffold into a practical Bluetooth utility for macOS users, including:
+The next iterations can build on the MVP with:
 
-- listing commonly used or paired Bluetooth devices
-- quick connect and disconnect actions
-- turning Bluetooth on and off
-- faster switching between known devices
-- a lightweight interaction flow that fits uTools search and command entry
+- device filtering and search
+- favorite devices and quick actions
+- recent devices and smarter switching flows
+- richer status feedback for connection failures
 
 ## Development
 
@@ -38,6 +36,8 @@ Requirements:
 - Node.js 20+
 - npm 10+
 - uTools desktop app
+- macOS with Bluetooth enabled
+- Xcode Command Line Tools for building the embedded helpers
 
 Install dependencies:
 

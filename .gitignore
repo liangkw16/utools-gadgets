@@ -10,3 +10,4 @@ coverage/
 
 BluetoothSelector/node_modules/
 BluetoothSelector/dist/
+BluetoothSelector/public/preload/bin/
