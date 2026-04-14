@@ -60,6 +60,18 @@ cd BluetoothSelector
 npm run build
 ```
 
+Load the built plugin in uTools:
+
+1. Open the uTools developer tool.
+2. Choose `BluetoothSelector/dist/plugin.json`.
+3. Click `接入开发` and then `打开`.
+
+Use hot reload during development:
+
+1. Run `npm run dev` in `BluetoothSelector/`.
+2. In the uTools developer tool choose `BluetoothSelector/public/plugin.json`.
+3. Keep the dev server running while testing the plugin.
+
 ## Repository Structure
 
 ```text
