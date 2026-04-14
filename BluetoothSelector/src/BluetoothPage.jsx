@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import BluetoothPowerCard from './components/BluetoothPowerCard'
 import DeviceList from './components/DeviceList'
+import { translateBluetoothError } from './lib/error-messages'
+import { getDeviceSummaryLabel } from './lib/device-sections'
 
 const INITIAL_SNAPSHOT = {
   power: 'unknown',
@@ -18,7 +20,7 @@ export default function BluetoothPage () {
     if (!window.services?.getBluetoothSnapshot) {
       setLoading(false)
       setRefreshing(false)
-      setError('Bluetooth services are only available inside uTools on macOS.')
+      setError('请在 macOS 的 uTools 插件环境中使用。')
       return
     }
 
@@ -34,7 +36,7 @@ export default function BluetoothPage () {
       const nextSnapshot = await window.services.getBluetoothSnapshot()
       setSnapshot(nextSnapshot)
     } catch (err) {
-      setError(err.message)
+      setError(translateBluetoothError(err.message))
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -59,11 +61,12 @@ export default function BluetoothPage () {
 
     try {
       await window.services.setBluetoothPower(nextPower)
-      notify(`Bluetooth turned ${nextPower}`)
+      notify(nextPower === 'on' ? '蓝牙已打开' : '蓝牙已关闭')
       await refresh({ silent: true })
     } catch (err) {
-      setError(err.message)
-      notify(err.message)
+      const message = translateBluetoothError(err.message)
+      setError(message)
+      notify(message)
     } finally {
       setBusyAddress('')
     }
@@ -81,11 +84,12 @@ export default function BluetoothPage () {
       } else {
         await window.services.connectDevice(device.address)
       }
-      notify(`${capitalize(action)}ed ${device.name}`)
+      notify(action === 'connect' ? `已连接 ${device.name}` : `已断开 ${device.name}`)
       await refresh({ silent: true })
     } catch (err) {
-      setError(err.message)
-      notify(err.message)
+      const message = translateBluetoothError(err.message)
+      setError(message)
+      notify(message)
     } finally {
       setBusyAddress('')
     }
@@ -93,20 +97,23 @@ export default function BluetoothPage () {
 
   return (
     <main className='page-shell'>
-      <BluetoothPowerCard
-        busy={busyAddress === '__power__'}
-        onRefresh={() => refresh({ silent: true })}
-        onToggle={handlePowerToggle}
-        power={snapshot.power}
-        refreshing={refreshing}
-      />
-      <DeviceList
-        busyAddress={busyAddress}
-        devices={snapshot.devices}
-        error={error}
-        loading={loading}
-        onDeviceAction={handleDeviceAction}
-      />
+      <div className='page-frame'>
+        <BluetoothPowerCard
+          busy={busyAddress === '__power__'}
+          onRefresh={() => refresh({ silent: true })}
+          onToggle={handlePowerToggle}
+          power={snapshot.power}
+          refreshing={refreshing}
+          summary={getDeviceSummaryLabel(snapshot.devices)}
+        />
+        <DeviceList
+          busyAddress={busyAddress}
+          devices={snapshot.devices}
+          error={error}
+          loading={loading}
+          onDeviceAction={handleDeviceAction}
+        />
+      </div>
     </main>
   )
 }
@@ -115,8 +122,4 @@ function notify (message) {
   if (window.utools?.showNotification) {
     window.utools.showNotification(message)
   }
-}
-
-function capitalize (value) {
-  return value.charAt(0).toUpperCase() + value.slice(1)
 }
