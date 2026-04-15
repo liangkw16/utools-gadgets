@@ -1,92 +1,153 @@
-# utools-gadgets
+# uTools Plus
 
-`BluetoothSelector` is a macOS-focused [uTools](https://u.tools/) plugin project for managing Bluetooth connections. The goal is to help users quickly connect, disconnect, and switch Bluetooth devices from uTools, with a workflow similar to `toothpair` and Raycast's Bluetooth management extensions.
+推荐的 GitHub 仓库名是 `utools-plus`。当前仓库已经按单插件、多命令、多模块的方向重组，适合作为后续扩展 `bluetooth`、`speaker`、以及更多 macOS 系统能力补全功能的基础仓库。
 
-## Project Focus
+## 定位
 
-- Target platform: macOS
-- Product form: uTools plugin
-- Main use case: fast Bluetooth device management from a launcher workflow
-- Inspiration: `toothpair`, Raycast Bluetooth related extensions
+`uTools Plus` 是一个面向 macOS 的 [uTools](https://u.tools/) 插件工程。它不是单一功能插件，而是一个命令式入口集合，用来补齐 uTools 当前没有直接覆盖的系统能力：
 
-## Current Status
+- `bluetooth`: 管理蓝牙连接、断开和蓝牙开关
+- `speaker`: 预留输出设备模块，当前提供系统声音设置入口
+- 后续可以继续追加 `microphone`、`display`、`network` 等命令
 
-`BluetoothSelector/` is now an MVP plugin shell for macOS Bluetooth management inside uTools. The current implementation supports:
+## 命名方案
 
-- reading the current Bluetooth controller state
-- listing paired devices with connected and disconnected grouping
-- turning Bluetooth on and off from the plugin UI
-- connecting and disconnecting paired devices
+- GitHub 仓库名：`utools-plus`
+- 插件显示名：`uTools Plus`
+- 当前插件工程目录：`apps/utools-plus/`
 
-The preload layer uses `system_profiler` text output as the snapshot source, a bundled Swift helper for device connect and disconnect, and an embedded Objective-C power helper that follows the same low-level approach used by `blueutil` for reliable Bluetooth power toggling on macOS.
+`Plus` 的含义更直接，就是把 uTools 里暂未支持或支持不完整的系统功能补上。
 
-## Planned Direction
-
-The next iterations can build on the MVP with:
-
-- device filtering and search
-- favorite devices and quick actions
-- recent devices and smarter switching flows
-- richer status feedback for connection failures
-
-## Development
-
-Requirements:
-
-- Node.js 20+
-- npm 10+
-- uTools desktop app
-- macOS with Bluetooth enabled
-- Xcode Command Line Tools for building the embedded helpers
-
-Install dependencies:
-
-```bash
-cd BluetoothSelector
-npm install
-```
-
-Start the local dev server:
-
-```bash
-cd BluetoothSelector
-npm run dev
-```
-
-`npm run dev` will:
-
-- start the Vite dev server on `127.0.0.1:5173`
-- watch `public/preload/native/` and auto-rebuild native helpers when they change
-- keep the workflow aligned with `public/plugin.json` in uTools
-
-Build the plugin frontend:
-
-```bash
-cd BluetoothSelector
-npm run build
-```
-
-Load the built plugin in uTools:
-
-1. Open the uTools developer tool.
-2. Choose `BluetoothSelector/dist/plugin.json`.
-3. Click `接入开发` and then `打开`.
-
-Use hot reload during development:
-
-1. Run `npm run dev` in `BluetoothSelector/`.
-2. In the uTools developer tool choose `BluetoothSelector/public/plugin.json`.
-3. Keep the dev server running while testing the plugin.
-4. If you change preload files or `plugin.json`, close and reopen the plugin in uTools once.
-
-## Repository Structure
+## 当前仓库结构
 
 ```text
 .
 ├── .github/workflows/ci.yml
-├── BluetoothSelector/
+├── apps/
+│   └── utools-plus/
+│       ├── public/
+│       │   ├── plugin.json
+│       │   └── preload/
+│       │       ├── bluetooth-helper.js
+│       │       ├── native/
+│       │       ├── services.js
+│       │       └── services/
+│       ├── scripts/
+│       ├── src/
+│       │   ├── app/
+│       │   ├── modules/
+│       │   │   ├── bluetooth/
+│       │   │   └── speaker/
+│       │   ├── App.jsx
+│       │   ├── main.css
+│       │   └── main.jsx
+│       ├── package.json
+│       └── vite.config.js
+├── docs/
+├── LICENSE
 └── README.md
 ```
+
+## 插件内部结构约定
+
+`apps/utools-plus/src/` 现在按“路由层 + 模块层”拆开：
+
+- `app/`: 命令路由、feature registry、全局入口
+- `modules/bluetooth/`: 蓝牙模块页面、组件、文案和偏好逻辑
+- `modules/speaker/`: 扬声器模块页面和后续扩展入口
+
+`public/preload/` 也改成了命名空间服务模式：
+
+- `services/bluetooth.js`
+- `services/speaker.js`
+- `services.js` 作为聚合入口，向前端暴露 `window.services.bluetooth` 和 `window.services.speaker`
+
+这个结构的关键点是：后面新增命令时，不再往一个页面或一个 preload 文件里堆代码，而是按命令独立扩展。
+
+## 当前功能状态
+
+### bluetooth
+
+已经支持：
+
+- 读取蓝牙控制器状态
+- 读取已配对设备
+- 搜索设备
+- 收藏常用设备
+- 快速连接和断开
+- 蓝牙开关控制
+- 跳转系统蓝牙设置
+
+### speaker
+
+当前是预留模块，已经具备：
+
+- 独立命令入口
+- 独立页面模块
+- 独立 preload service
+- 打开系统声音设置
+
+还未接入：
+
+- 输出设备枚举
+- 输出设备快速切换
+- 收藏和最近使用设备排序
+
+## 开发
+
+要求：
+
+- Node.js 20+
+- npm 10+
+- uTools 桌面应用
+- macOS
+- Xcode Command Line Tools
+
+安装依赖：
+
+```bash
+cd apps/utools-plus
+npm install
+```
+
+启动开发：
+
+```bash
+cd apps/utools-plus
+npm run dev
+```
+
+构建：
+
+```bash
+cd apps/utools-plus
+npm run build
+```
+
+## 在 uTools 中接入
+
+开发模式：
+
+1. 运行 `apps/utools-plus` 下的 `npm run dev`
+2. 在 uTools 开发者工具中接入 `apps/utools-plus/public/plugin.json`
+3. 保持 dev 服务运行
+
+构建产物：
+
+1. 执行 `npm run build`
+2. 在 uTools 开发者工具中接入 `apps/utools-plus/dist/plugin.json`
+
+## 扩展新命令的建议方式
+
+以后新增命令时，按下面的模板追加：
+
+1. 在 `public/plugin.json` 增加新 feature
+2. 在 `src/modules/<feature>/` 增加页面、组件和业务逻辑
+3. 在 `public/preload/services/<feature>.js` 增加对应服务
+4. 在 `src/app/feature-registry.js` 注册 feature code
+5. 在 `src/app/AppRouter.jsx` 接入新页面
+
+这样每个命令的 UI、逻辑和系统调用边界都比较清晰。
 
 ## License
 

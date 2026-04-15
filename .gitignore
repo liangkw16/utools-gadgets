@@ -8,6 +8,6 @@ node_modules/
 dist/
 coverage/
 
-BluetoothSelector/node_modules/
-BluetoothSelector/dist/
-BluetoothSelector/public/preload/bin/
+apps/*/node_modules/
+apps/*/dist/
+apps/*/public/preload/bin/

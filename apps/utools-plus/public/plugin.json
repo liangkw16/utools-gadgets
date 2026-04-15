@@ -1,0 +1,38 @@
+{
+  "pluginName": "uTools Plus",
+  "description": "在 uTools 中补充 macOS 系统能力，包括设备连接、输出切换和常用系统快捷控制",
+  "author": "liangkw16",
+  "version": "0.1.0",
+  "platform": [
+    "darwin"
+  ],
+  "pluginSetting": {
+    "single": true
+  },
+  "main": "index.html",
+  "preload": "preload/services.js",
+  "logo": "logo.png",
+  "development": {
+    "main": "http://127.0.0.1:5173/index.html"
+  },
+  "features": [
+    {
+      "code": "bluetooth",
+      "explain": "管理 macOS 蓝牙设备连接和蓝牙开关",
+      "cmds": [
+        "蓝牙",
+        "bluetooth",
+        "Bluetooth"
+      ]
+    },
+    {
+      "code": "speaker",
+      "explain": "管理 macOS 输出设备与声音相关操作",
+      "cmds": [
+        "扬声器",
+        "speaker",
+        "输出设备"
+      ]
+    }
+  ]
+}
