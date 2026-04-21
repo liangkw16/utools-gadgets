@@ -11,3 +11,4 @@ coverage/
 apps/*/node_modules/
 apps/*/dist/
 apps/*/public/preload/bin/
+.omx/
