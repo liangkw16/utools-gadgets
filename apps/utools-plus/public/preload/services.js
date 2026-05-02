@@ -1,11 +1,11 @@
 const bluetooth = require('./services/bluetooth')
-const speaker = require('./services/speaker')
+const sound = require('./services/sound')
 
 const hostWindow = globalThis.window ?? globalThis
 
 hostWindow.services = {
   bluetooth,
-  speaker
+  sound
 }
 
 module.exports = hostWindow.services

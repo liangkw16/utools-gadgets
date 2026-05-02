@@ -13,10 +13,16 @@ test('plugin metadata exposes switchboard commands', () => {
     'bluetooth',
     'Bluetooth'
   ])
-  assert.equal(plugin.features[1].code, 'speaker')
+  assert.equal(plugin.features[1].code, 'sound')
   assert.deepEqual(plugin.features[1].cmds, [
-    '扬声器',
-    'speaker',
-    '输出设备'
+    '声音',
+    'sound',
+    '音频',
+    '输入设备',
+    '输出设备',
+    '音量',
+    '调节音量',
+    '静音',
+    '取消静音'
   ])
 })

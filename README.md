@@ -1,13 +1,13 @@
 # uTools Plus
 
-推荐的 GitHub 仓库名是 `utools-plus`。当前仓库已经按单插件、多命令、多模块的方向重组，适合作为后续扩展 `bluetooth`、`speaker`、以及更多 macOS 系统能力补全功能的基础仓库。
+推荐的 GitHub 仓库名是 `utools-plus`。当前仓库已经按单插件、多命令、多模块的方向重组，适合作为后续扩展 `bluetooth`、`sound`、以及更多 macOS 系统能力补全功能的基础仓库。
 
 ## 定位
 
 `uTools Plus` 是一个面向 macOS 的 [uTools](https://u.tools/) 插件工程。它不是单一功能插件，而是一个命令式入口集合，用来补齐 uTools 当前没有直接覆盖的系统能力：
 
 - `bluetooth`: 管理蓝牙连接、断开和蓝牙开关
-- `speaker`: 预留输出设备模块，当前提供系统声音设置入口
+- `sound`: 管理音频输入和输出设备，并提供系统声音设置入口
 - 后续可以继续追加 `microphone`、`display`、`network` 等命令
 
 ## 命名方案
@@ -37,7 +37,7 @@
 │       │   ├── app/
 │       │   ├── modules/
 │       │   │   ├── bluetooth/
-│       │   │   └── speaker/
+│       │   │   └── sound/
 │       │   ├── App.jsx
 │       │   ├── main.css
 │       │   └── main.jsx
@@ -54,13 +54,13 @@
 
 - `app/`: 命令路由、feature registry、全局入口
 - `modules/bluetooth/`: 蓝牙模块页面、组件、文案和偏好逻辑
-- `modules/speaker/`: 扬声器模块页面和后续扩展入口
+- `modules/sound/`: 音频输入和输出设备管理页面
 
 `public/preload/` 也改成了命名空间服务模式：
 
 - `services/bluetooth.js`
-- `services/speaker.js`
-- `services.js` 作为聚合入口，向前端暴露 `window.services.bluetooth` 和 `window.services.speaker`
+- `services/sound.js`
+- `services.js` 作为聚合入口，向前端暴露 `window.services.bluetooth` 和 `window.services.sound`
 
 这个结构的关键点是：后面新增命令时，不再往一个页面或一个 preload 文件里堆代码，而是按命令独立扩展。
 
@@ -78,20 +78,19 @@
 - 蓝牙开关控制
 - 跳转系统蓝牙设置
 
-### speaker
+### sound
 
-当前是预留模块，已经具备：
+已经支持：
 
 - 独立命令入口
 - 独立页面模块
 - 独立 preload service
+- 读取音频输入和输出设备
+- 切换默认输入设备
+- 切换默认输出设备
+- 调节默认输入和输出音量
+- 静音和取消静音默认输入、输出设备
 - 打开系统声音设置
-
-还未接入：
-
-- 输出设备枚举
-- 输出设备快速切换
-- 收藏和最近使用设备排序
 
 ## 开发
 
