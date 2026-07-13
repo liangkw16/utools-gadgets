@@ -1,6 +1,6 @@
 const fs = require('node:fs')
 const path = require('node:path')
-const { execFile } = require('node:child_process')
+const { execFile } = require('child_process')
 const { promisify } = require('node:util')
 
 const execFileAsync = promisify(execFile)
@@ -92,7 +92,14 @@ async function readFreshWifiSnapshot (options = {}) {
     knownNetworks: wifiDetails.knownNetworks ?? [],
     otherNetworks: wifiDetails.otherNetworks ?? [],
     historyNetworks: wifiDetails.historyNetworks ?? [],
-    scanning: power === 'on' && !scan
+    scanning: power === 'on' && !scan,
+    networkNamesUnavailable: Boolean(
+      power === 'on' &&
+      scan &&
+      wifiDetails.current?.connected &&
+      !isNamedSsid(wifiDetails.current.ssid) &&
+      (wifiDetails.networks?.length ?? 0) === 0
+    )
   }
 }
 
@@ -301,7 +308,8 @@ function parseWifiPower (text) {
 
 function parseNetworksetupCurrentSsid (text) {
   const match = String(text).match(/^Current Wi-Fi Network:\s*(.+)\s*$/m)
-  return match?.[1]?.trim() ?? ''
+  const ssid = match?.[1]?.trim() ?? ''
+  return isNamedSsid(ssid) ? ssid : ''
 }
 
 function parsePreferredWifiNetworks (text) {
@@ -398,21 +406,22 @@ function resolveAirportCommand (exists = fs.existsSync) {
   return AIRPORT_CANDIDATES.find(candidate => exists(candidate)) || ''
 }
 
-function resolveNativeWifiInvocation (wifiInterface, exists = fs.existsSync, action = 'snapshot') {
-  return getNativeWifiInvocations(wifiInterface, exists, action)[0] ?? null
+function resolveNativeWifiInvocation (wifiInterface, exists = fs.existsSync, action = 'snapshot', helperRoot = __dirname) {
+  return getNativeWifiInvocations(wifiInterface, exists, action, helperRoot)[0] ?? null
 }
 
-function getNativeWifiInvocations (wifiInterface, exists = fs.existsSync, action = 'snapshot') {
-  const binaryPath = path.join(__dirname, 'bin', 'wifi-helper')
-  const sourcePath = path.join(__dirname, 'native', 'wifi-helper.swift')
+function getNativeWifiInvocations (wifiInterface, exists = fs.existsSync, action = 'snapshot', helperRoot = __dirname) {
+  const binaryPath = path.join(helperRoot, 'bin', 'wifi-helper')
+  const sourcePath = path.join(helperRoot, 'native', 'wifi-helper.swift')
   const args = [action, wifiInterface]
   const invocations = []
+  const canRunSource = exists(sourcePath) && !sourcePath.includes(`.asar${path.sep}`)
 
   if (action === 'current' && exists(binaryPath)) {
     invocations.push({ command: binaryPath, args })
   }
 
-  if (exists(sourcePath)) {
+  if (canRunSource) {
     invocations.push({ command: SWIFT, args: [sourcePath, ...args] })
   }
 
@@ -454,7 +463,7 @@ function parseSystemProfilerWifi (text, wifiInterface = '') {
   const current = parseSystemProfilerNetwork(airportInterface.spairport_current_network_information)
   const networks = (airportInterface.spairport_airport_other_local_wireless_networks ?? [])
     .map(network => parseSystemProfilerNetwork(network))
-    .filter(Boolean)
+    .filter(network => isNamedSsid(network?.ssid))
 
   return {
     current,
@@ -468,9 +477,10 @@ function parseSystemProfilerNetwork (network) {
   }
 
   const signal = parseSignalNoise(network.spairport_signal_noise)
+  const ssid = String(network._name).trim()
 
   return {
-    ssid: network._name,
+    ssid: isNamedSsid(ssid) ? ssid : '',
     bssid: '',
     rssi: signal.rssi,
     noise: signal.noise,
@@ -621,7 +631,7 @@ function groupNetworksBySsid (networks = []) {
   const groups = new Map()
 
   for (const network of networks) {
-    if (!network?.ssid) {
+    if (!isNamedSsid(network?.ssid)) {
       continue
     }
 
@@ -669,6 +679,7 @@ function decorateCurrentNetwork (current, currentGroup, preferredSet) {
 
   return {
     ...current,
+    ssid: currentSsid,
     bssid: '',
     rssi: current.rssi ?? currentGroup?.rssi ?? null,
     noise: current.noise ?? currentGroup?.noise ?? null,
@@ -743,7 +754,7 @@ function dedupeSsids (ssids = []) {
   for (const ssid of ssids) {
     const normalizedSsid = String(ssid ?? '').trim()
 
-    if (!normalizedSsid || seen.has(normalizedSsid)) {
+    if (!isNamedSsid(normalizedSsid) || seen.has(normalizedSsid)) {
       continue
     }
 
@@ -761,7 +772,13 @@ function addUnique (items, value) {
 }
 
 function isNamedSsid (ssid) {
-  return Boolean(ssid && ssid !== '当前网络')
+  const normalizedSsid = String(ssid ?? '').trim()
+
+  return Boolean(
+    normalizedSsid &&
+    normalizedSsid !== '当前网络' &&
+    !/^<\s*redacted\s*>$/i.test(normalizedSsid)
+  )
 }
 
 function isBetterWifiNetwork (candidate, current) {
@@ -831,16 +848,17 @@ function hasWifiAssociation (network) {
   return Boolean(
     network &&
     (
+      isNamedSsid(network.ssid) ||
       (typeof network.rssi === 'number' && network.rssi !== 0) ||
       (typeof network.txRate === 'number' && network.txRate > 0) ||
-      network.channel ||
-      network.security
+      network.channel
     )
   )
 }
 
 function normalizeWifiNetwork (network, { allowEmptySsid = false } = {}) {
-  const ssid = String(network?.ssid ?? '').trim()
+  const reportedSsid = String(network?.ssid ?? '').trim()
+  const ssid = isNamedSsid(reportedSsid) ? reportedSsid : ''
 
   if (!allowEmptySsid && !ssid) {
     return null
@@ -940,6 +958,7 @@ module.exports = {
   connectWifiNetwork,
   getWifiSettingsInvocationCandidates,
   getWifiSnapshot,
+  getNativeWifiInvocations,
   normalizeWifiPower,
   openWifiSettings,
   parseAirportCurrent,

@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     defaults:
       run:
@@ -28,5 +28,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Test
+        run: npm test
+
       - name: Build
         run: npm run build
+
+      - name: Verify native helpers
+        run: |
+          for helper in bluetooth-helper bluetooth-power sound-helper wifi-helper; do
+            helper_path="dist/preload/bin/$helper"
+            test -x "$helper_path"
+            /usr/bin/lipo "$helper_path" -verify_arch arm64 x86_64
+            /usr/bin/codesign --verify --all-architectures "$helper_path"
+          done

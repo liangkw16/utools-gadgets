@@ -26,6 +26,22 @@ export function getWifiNetworkActionLabel (network, connectingSsid = '') {
   return '连接'
 }
 
+export function getWifiNetworkListNotice (snapshot) {
+  return snapshot?.networkNamesUnavailable
+    ? 'macOS 未提供附近网络名称，当前仅显示已保存网络。'
+    : ''
+}
+
+export function getWifiCurrentNetworkName (snapshot) {
+  const ssid = String(snapshot?.current?.ssid ?? '').trim()
+
+  if (ssid && ssid !== '当前网络' && !/^<\s*redacted\s*>$/i.test(ssid)) {
+    return ssid
+  }
+
+  return snapshot?.current?.connected ? '已连接网络' : ''
+}
+
 export function getWifiConnectionErrorMessage (error) {
   const message = String(error?.message ?? error ?? '').toLowerCase()
 

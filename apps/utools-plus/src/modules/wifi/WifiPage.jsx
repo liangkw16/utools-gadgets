@@ -6,8 +6,10 @@ import {
   writeWifiPreferences
 } from './lib/wifi-preferences.js'
 import {
+  getWifiCurrentNetworkName,
   getWifiConnectionErrorMessage,
   getWifiNetworkActionLabel,
+  getWifiNetworkListNotice,
   isConnectableWifiNetwork,
   requiresWifiPassword
 } from './lib/wifi-network-actions.js'
@@ -21,7 +23,8 @@ const INITIAL_SNAPSHOT = {
   knownNetworks: [],
   otherNetworks: [],
   historyNetworks: [],
-  scanning: false
+  scanning: false,
+  networkNamesUnavailable: false
 }
 
 export default function WifiPage ({ activationId = 0 }) {
@@ -255,7 +258,7 @@ export default function WifiPage ({ activationId = 0 }) {
 
 function WifiCurrentCard ({ snapshot }) {
   const current = snapshot.current
-  const currentName = getCurrentNetworkName(snapshot)
+  const currentName = getWifiCurrentNetworkName(snapshot)
   const hasCurrent = Boolean(currentName)
 
   return (
@@ -286,6 +289,7 @@ function WifiCurrentCard ({ snapshot }) {
 }
 
 function WifiNetworkSections ({ connectingSsid, onConnectNetwork, snapshot }) {
+  const networkListNotice = getWifiNetworkListNotice(snapshot)
   const sections = [
     {
       title: '已知网络',
@@ -310,12 +314,13 @@ function WifiNetworkSections ({ connectingSsid, onConnectNetwork, snapshot }) {
   }
 
   if (sections.length === 0) {
-    return <div className='empty-panel wifi-empty-state'>没有扫描到附近网络</div>
+    return <div className='empty-panel wifi-empty-state'>{networkListNotice || '没有扫描到附近网络'}</div>
   }
 
   return (
     <div className='section-stack wifi-network-groups'>
       {snapshot.scanning && <div className='wifi-section-note'>正在更新附近网络...</div>}
+      {networkListNotice && <div className='wifi-section-note'>{networkListNotice}</div>}
       {sections.map(section => (
         <WifiNetworkSection
           connectingSsid={connectingSsid}
@@ -416,14 +421,20 @@ function normalizeWifiSnapshot (snapshot) {
     knownNetworks,
     otherNetworks,
     historyNetworks,
-    scanning: snapshot?.scanning === true
+    scanning: snapshot?.scanning === true,
+    networkNamesUnavailable: snapshot?.networkNamesUnavailable === true
   }
 }
 
 function getWifiSummary (snapshot) {
   if (snapshot.power === 'off') return 'Wi-Fi 已关闭'
   if (snapshot.power === 'unknown') return 'Wi-Fi 状态未就绪'
-  const currentName = getCurrentNetworkName(snapshot)
+  const currentName = getWifiCurrentNetworkName(snapshot)
+
+  if (currentName === '已连接网络') {
+    return 'Wi-Fi 已连接，网络名称不可用'
+  }
+
   return currentName ? `已连接 ${currentName}` : 'Wi-Fi 已开启，未连接网络'
 }
 
@@ -495,20 +506,6 @@ function mergeCurrentNetworkName (previousSnapshot, nextSnapshot, rememberedCurr
   }
 
   return nextSnapshot
-}
-
-function getCurrentNetworkName (snapshot) {
-  const ssid = snapshot.current?.ssid
-
-  if (!ssid || isPlaceholderSsid(ssid)) {
-    return snapshot.scanning && snapshot.current?.connected ? '已连接网络' : ''
-  }
-
-  return ssid
-}
-
-function isPlaceholderSsid (ssid) {
-  return ssid === '当前网络'
 }
 
 function getSignalIcon (rssi) {

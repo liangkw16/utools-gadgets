@@ -1,11 +1,44 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import * as wifiActions from './wifi-network-actions.js'
 import {
   getWifiConnectionErrorMessage,
   getWifiNetworkActionLabel,
   isConnectableWifiNetwork,
   requiresWifiPassword
 } from './wifi-network-actions.js'
+
+test('getWifiNetworkListNotice explains unavailable network names', () => {
+  assert.equal(
+    wifiActions.getWifiNetworkListNotice?.({ networkNamesUnavailable: true }),
+    'macOS 未提供附近网络名称，当前仅显示已保存网络。'
+  )
+  assert.equal(
+    wifiActions.getWifiNetworkListNotice?.({ networkNamesUnavailable: false }),
+    ''
+  )
+})
+
+test('getWifiCurrentNetworkName describes a connected network with a hidden SSID', () => {
+  assert.equal(
+    wifiActions.getWifiCurrentNetworkName?.({
+      current: {
+        connected: true,
+        ssid: ''
+      }
+    }),
+    '已连接网络'
+  )
+  assert.equal(
+    wifiActions.getWifiCurrentNetworkName?.({
+      current: {
+        connected: true,
+        ssid: 'Studio WiFi'
+      }
+    }),
+    'Studio WiFi'
+  )
+})
 
 test('isConnectableWifiNetwork allows visible non-current networks', () => {
   assert.equal(isConnectableWifiNetwork({

@@ -5,6 +5,7 @@ const path = require('node:path')
 const {
   clearWifiSnapshotCache,
   connectWifiNetwork,
+  getNativeWifiInvocations,
   getWifiSettingsInvocationCandidates,
   getWifiSnapshot,
   parseAirportCurrent,
@@ -158,6 +159,21 @@ const NATIVE_WIFI_CURRENT_HELPER = JSON.stringify({
     txRate: 864,
     maxRate: null,
     security: 'wpa2 enterprise'
+  },
+  networks: []
+})
+
+const NATIVE_WIFI_DISCONNECTED_HELPER = JSON.stringify({
+  ok: true,
+  current: {
+    ssid: '',
+    bssid: '',
+    rssi: 0,
+    noise: 0,
+    channel: '',
+    txRate: 0,
+    maxRate: null,
+    security: 'open'
   },
   networks: []
 })
@@ -390,6 +406,10 @@ test('parseNetworksetupCurrentSsid reads the current associated network name', (
     parseNetworksetupCurrentSsid('You are not associated with an AirPort network.\n'),
     ''
   )
+  assert.equal(
+    parseNetworksetupCurrentSsid('Current Wi-Fi Network: <redacted>\n'),
+    ''
+  )
 })
 
 test('parsePreferredWifiNetworks reads saved network history', () => {
@@ -533,6 +553,100 @@ test('parseSystemProfilerWifi reads current and nearby networks when airport is 
       }
     ]
   })
+})
+
+test('parseSystemProfilerWifi removes privacy-redacted network names', () => {
+  const payload = JSON.stringify({
+    SPAirPortDataType: [
+      {
+        spairport_airport_interfaces: [
+          {
+            _name: 'en0',
+            spairport_current_network_information: {
+              _name: '<redacted>',
+              spairport_network_channel: '40 (5GHz, 160MHz)',
+              spairport_network_rate: 1200,
+              spairport_signal_noise: '-42 dBm / -92 dBm'
+            },
+            spairport_airport_other_local_wireless_networks: [
+              {
+                _name: '<redacted>',
+                spairport_network_channel: '6 (2GHz, 20MHz)'
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  })
+
+  assert.deepEqual(parseSystemProfilerWifi(payload, 'en0'), {
+    current: {
+      ssid: '',
+      bssid: '',
+      rssi: -42,
+      noise: -92,
+      channel: '40 (5GHz, 160MHz)',
+      txRate: 1200,
+      maxRate: null,
+      security: ''
+    },
+    networks: []
+  })
+})
+
+test('getWifiSnapshot reports when macOS withholds nearby network names', async () => {
+  clearWifiSnapshotCache()
+  const base = createWifiSnapshotRunner()
+  const snapshot = await getWifiSnapshot({
+    platform: 'darwin',
+    exists: base.exists,
+    cache: false,
+    runner: async (command, args) => {
+      if (command === '/usr/sbin/networksetup' && args[0] === '-getairportnetwork') {
+        return { stdout: 'You are not associated with an AirPort network.\n' }
+      }
+
+      if (command === base.bundledHelper && args[0] === 'snapshot') {
+        return { stdout: NATIVE_WIFI_CURRENT_HELPER }
+      }
+
+      return base.runner(command, args)
+    }
+  })
+
+  assert.equal(snapshot.current.connected, true)
+  assert.equal(snapshot.current.ssid, '')
+  assert.equal(snapshot.networkNamesUnavailable, true)
+  assert.deepEqual(snapshot.historyNetworks.map(network => network.ssid), [
+    'Studio WiFi',
+    'Guest Net',
+    'Office WiFi'
+  ])
+})
+
+test('getWifiSnapshot does not treat security metadata alone as an active connection', async () => {
+  clearWifiSnapshotCache()
+  const base = createWifiSnapshotRunner()
+  const snapshot = await getWifiSnapshot({
+    platform: 'darwin',
+    exists: base.exists,
+    cache: false,
+    runner: async (command, args) => {
+      if (command === '/usr/sbin/networksetup' && args[0] === '-getairportnetwork') {
+        return { stdout: 'You are not associated with an AirPort network.\n' }
+      }
+
+      if (command === base.bundledHelper && args[0] === 'snapshot') {
+        return { stdout: NATIVE_WIFI_DISCONNECTED_HELPER }
+      }
+
+      return base.runner(command, args)
+    }
+  })
+
+  assert.equal(snapshot.current, null)
+  assert.equal(snapshot.networkNamesUnavailable, false)
 })
 
 test('parseNativeWifiHelperResponse reads CoreWLAN current metrics and nearby networks', () => {
@@ -755,6 +869,21 @@ test('resolveNativeWifiInvocation prefers the compiled helper for current-only r
     command: bundledHelper,
     args: ['current', 'en0']
   })
+})
+
+test('getNativeWifiInvocations skips Swift source inside a market ASAR', () => {
+  const helperRoot = '/tmp/utools-plus.asar/preload'
+  const binaryPath = path.join(helperRoot, 'bin', 'wifi-helper')
+
+  assert.deepEqual(
+    getNativeWifiInvocations?.('en0', () => true, 'snapshot', helperRoot),
+    [
+      {
+        command: binaryPath,
+        args: ['snapshot', 'en0']
+      }
+    ]
+  )
 })
 
 test('readNativeWifiDetails falls back to the compiled helper when Swift is unavailable', async () => {
